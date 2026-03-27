@@ -5,6 +5,8 @@ import { useState, useCallback } from "react";
 export interface FilterState {
   campus: string;
   date: string;
+  timeStart: string;
+  timeEnd: string;
   minCapacity: string;
   equipment: string[];
   search: string;
@@ -13,6 +15,8 @@ export interface FilterState {
 const initialFilters: FilterState = {
   campus: "",
   date: "",
+  timeStart: "",
+  timeEnd: "",
   minCapacity: "",
   equipment: [],
   search: "",

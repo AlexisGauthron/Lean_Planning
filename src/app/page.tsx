@@ -623,20 +623,23 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Only count non-rejected bookings for the planning
+  // Non-rejected bookings — used for display (dots colors, partial indicators)
   const activeSharedBookings = sharedBookings.filter((b) => b.status !== "rejected");
   // User's own bookings (for blue highlighting)
   const mySharedBookings = activeSharedBookings.filter((b) => session && b.userId === session.user.id);
 
-  // Only add a SharedBooking to the planning (computeFreeSlots) when the slot is fully blocked:
-  // - association/prof "full" booking always blocks
-  // - partial bookings only block when total seats >= room capacity
-  const blockingSharedAsBookings: Booking[] = activeSharedBookings
+  // Only APPROVED bookings block slots for availability/counter (pending = not yet confirmed)
+  const approvedSharedBookings = sharedBookings.filter((b) => b.status === "approved");
+
+  // Only add an approved SharedBooking to the blocking list when the slot is fully blocked:
+  // - "full" booking always blocks
+  // - partial bookings only block when total approved seats >= room capacity
+  const blockingSharedAsBookings: Booking[] = approvedSharedBookings
     .filter((sb) => {
       if (sb.type === "full") return true;
       const room = allRooms.find((r) => r.id === sb.roomId);
       if (!room || room.capacity <= 0) return false;
-      const totalSeats = activeSharedBookings
+      const totalSeats = approvedSharedBookings
         .filter((o) => o.roomId === sb.roomId && o.date === sb.date && !(o.end <= sb.start || o.start >= sb.end))
         .reduce((sum, b) => sum + b.seats, 0);
       return totalSeats >= room.capacity;
@@ -724,14 +727,27 @@ export default function Home() {
   const handleApproveBooking = async (id: string) => {
     setSharedBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "approved" } : b));
     setMyBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "approved" } : b));
-    await supabase.from("bookings").update({ status: "approved" }).eq("id", id);
-    addNotification({ type: "approval", message: "Réservation approuvée", detail: `ID : ${id}` });
+    const { error } = await supabase.from("bookings").update({ status: "approved" }).eq("id", id);
+    if (error) {
+      console.error("Erreur approbation:", error);
+      // Rollback optimistic update
+      setSharedBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "pending" } : b));
+      addNotification({ type: "info", message: "Erreur lors de l'approbation", detail: error.message });
+    } else {
+      addNotification({ type: "approval", message: "Réservation approuvée" });
+    }
   };
 
   const handleRejectBooking = async (id: string) => {
     setSharedBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "rejected" } : b));
     setMyBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "rejected" } : b));
-    await supabase.from("bookings").update({ status: "rejected" }).eq("id", id);
+    const { error } = await supabase.from("bookings").update({ status: "rejected" }).eq("id", id);
+    if (error) {
+      console.error("Erreur rejet:", error);
+      // Rollback optimistic update
+      setSharedBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "pending" } : b));
+      addNotification({ type: "info", message: "Erreur lors du rejet", detail: error.message });
+    }
   };
 
   const handleUpdateAdminConfig = async (config: AdminConfig) => {
@@ -787,6 +803,10 @@ export default function Home() {
   };
 
   const favoriteRooms = rooms.filter((r) => favorites.has(r.id));
+  // Dashboard: only show rooms with at least one free slot today
+  const availableRooms = rooms.filter((r) =>
+    computeFreeSlots(r.id, currentDate, mergedBookings).freeSlots.length > 0
+  );
 
   return (
     <div className={`h-screen flex flex-col${user.type === "admin" ? " admin-theme" : ""}`} style={{ background: "var(--surface)" }}>
@@ -987,16 +1007,16 @@ export default function Home() {
                 </div>
 
                 <div className="px-3 sm:px-6">
-                  {rooms.length === 0 ? (
+                  {availableRooms.length === 0 ? (
                     <div
                       className="text-center py-16 rounded-2xl text-sm"
                       style={{ background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
                     >
-                      Aucune salle ne correspond aux filtres sélectionnés
+                      {rooms.length === 0 ? "Aucune salle ne correspond aux filtres sélectionnés" : "Aucune salle disponible pour ce créneau"}
                     </div>
                   ) : view === "grid" ? (
                     <WeekGrid
-                      rooms={rooms}
+                      rooms={availableRooms}
                       bookings={mergedBookings}
                       selectedDate={currentDate}
                       sharedBookings={activeSharedBookings}
@@ -1006,7 +1026,7 @@ export default function Home() {
                     />
                   ) : (
                     <RoomList
-                      rooms={rooms}
+                      rooms={availableRooms}
                       bookings={mergedBookings}
                       date={currentDate}
                       favorites={favorites}

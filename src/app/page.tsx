@@ -17,7 +17,7 @@ import { FloorPlan } from "@/components/FloorPlan";
 import { RoomDetail } from "@/components/RoomDetail";
 import { Loader2, CalendarDays, Heart, ChevronLeft, ChevronRight, Layers, MapPin, Clock, Users, ArrowRight, Check, X } from "lucide-react";
 import { Room, Booking, SharedBooking, AdminConfig } from "@/lib/types";
-import { AdminPanel } from "@/components/AdminPanel";
+import { AdminPanel, Profile } from "@/components/AdminPanel";
 import { isRoomFreeAt, computeFreeSlots } from "@/lib/availability";
 
 function getTodayISO() {
@@ -304,9 +304,9 @@ function NowView({
 type MyBooking = MyBookingType;
 
 const STATUS_CFG: Record<string, { label: string; bg: string; color: string; dot: string }> = {
-  pending:  { label: "En attente",  bg: "#fff8e1", color: "#e65100", dot: "#ffa000" },
-  approved: { label: "Confirmée",   bg: "#e8f5e9", color: "#2e7d32", dot: "#43a047" },
-  rejected: { label: "Refusée",     bg: "#ffdad6", color: "#93000a", dot: "#ba1a1a" },
+  pending:  { label: "En attente", bg: "var(--secondary-container)", color: "var(--primary)",        dot: "var(--primary)" },
+  approved: { label: "Confirmée",  bg: "rgba(74,222,128,0.15)",       color: "#4ade80",               dot: "#4ade80" },
+  rejected: { label: "Refusée",    bg: "rgba(255,100,100,0.12)",      color: "rgba(255,130,130,1)",   dot: "rgba(255,130,130,1)" },
 };
 
 function BookingsView({ bookings, onCancel, onSelectRoom }: { bookings: MyBooking[]; onCancel: (id: string) => void; onSelectRoom: (roomId: string, date: string, start: string, end: string) => void }) {
@@ -362,7 +362,7 @@ function BookingsView({ bookings, onCancel, onSelectRoom }: { bookings: MyBookin
                 <p className="text-xs" style={{ color: "var(--on-surface-variant)" }}>{b.campus}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
-                {b.status === "pending" && (
+                {b.status !== "rejected" && (
                   <button
                     onClick={() => onCancel(b.id)}
                     className="w-8 h-8 rounded-full flex items-center justify-center"
@@ -571,6 +571,7 @@ export default function Home() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [user, setUser] = useState<AppUser>({ name: "", email: "", type: "student" });
   const [adminConfig, setAdminConfig] = useState<AdminConfig>({ studentMaxDays: 7, assoMaxDays: 30, profMaxDays: 90, studentMaxSeats: 4, studentMaxRoomsPerDay: 2 });
+  const [profiles, setProfiles] = useState<Profile[]>([]);
 
   // ─── Auth ───────────────────────────────────────────────────────────────────
   const [session, setSession] = useState<Session | null>(null);
@@ -582,7 +583,12 @@ export default function Home() {
       .from("profiles").select("*").eq("id", sess.user.id).single();
     if (profile) {
       setUser({ name: profile.name, email: sess.user.email ?? "", type: profile.type });
-      if (profile.type === "admin") setCurrentPage("admin");
+        if (profile.type === "admin") setCurrentPage("admin");
+      // Load all profiles for admin user management
+      if (profile.type === "admin") {
+        const { data: allProfiles } = await supabase.from("profiles").select("id, name, type");
+        if (allProfiles) setProfiles(allProfiles as Profile[]);
+      }
     }
     // Load all bookings (shared planning + own reservations)
     const { data: dbBookings } = await supabase.from("bookings").select("*");
@@ -622,6 +628,29 @@ export default function Home() {
     });
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ─── Realtime : notif admin quand une nouvelle réservation est créée ─────────
+  useEffect(() => {
+    if (!session || user.type !== "admin") return;
+    const channel = supabase
+      .channel("admin-new-bookings")
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "bookings",
+      }, (payload) => {
+        const b = payload.new as { id: string; user_name: string; room_id: string; date: string; start_time: string; end_time: string; booking_type: string; seats: number };
+        setNotifications((prev) => [...prev, {
+          id: `${Date.now()}`,
+          type: "approval",
+          message: `Nouvelle réservation — ${b.room_id}`,
+          detail: `${b.user_name} · ${b.date} · ${b.start_time}–${b.end_time}`,
+          read: false,
+        }]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session, user.type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ─── Realtime : notif quand l'admin change le statut d'une réservation ───────
   useEffect(() => {
@@ -733,7 +762,7 @@ export default function Home() {
 
     const userId = session.user.id;
     const bookingId = `${Date.now()}`;
-    const bookingStatus = user.type === "admin" ? "approved" : "pending";
+    const bookingStatus = "approved";
 
     // Optimistic update
     setMyBookings((prev) => [...prev, { id: bookingId, roomId, campus, date, start: slot.start, end: slot.end, status: bookingStatus }]);
@@ -753,10 +782,8 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to: "gestion_salle@omnes.com", subject: `Demande de réservation – ${roomId} – ${date}`, body: `Salle : ${roomId}\nCampus : ${campus}\nDate : ${date}\nCréneau : ${slot.start}–${slot.end}` }),
     }).then(() => addNotification({
-      type: user.type === "admin" ? "approval" : "email",
-      message: user.type === "admin"
-        ? "Réservation confirmée"
-        : "Votre demande a été envoyée à l'administrateur, elle sera traitée dans les plus brefs délais",
+      type: "approval",
+      message: "Réservation confirmée",
       detail: `${roomId} · ${date} · ${slot.start}–${slot.end}`,
     })).catch(() => {});
 
@@ -788,6 +815,11 @@ export default function Home() {
       setSharedBookings((prev) => prev.map((b) => b.id === id ? { ...b, status: "pending" } : b));
       addNotification({ type: "info", message: "Erreur lors du rejet", detail: error.message });
     }
+  };
+
+  const handleUpdateUserType = async (userId: string, type: "student" | "association" | "prof") => {
+    setProfiles((prev) => prev.map((p) => p.id === userId ? { ...p, type } : p));
+    await supabase.from("profiles").update({ type }).eq("id", userId);
   };
 
   const handleUpdateAdminConfig = async (config: AdminConfig) => {
@@ -938,9 +970,11 @@ export default function Home() {
             <AdminPanel
               sharedBookings={sharedBookings}
               adminConfig={adminConfig}
+              profiles={profiles}
               onApprove={handleApproveBooking}
               onReject={handleRejectBooking}
               onUpdateConfig={handleUpdateAdminConfig}
+              onUpdateUserType={handleUpdateUserType}
             />
           )}
           {!selectedRoomId && currentPage === "bookings" && (

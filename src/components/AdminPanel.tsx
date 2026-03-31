@@ -1,22 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Settings, History, AlertCircle } from "lucide-react";
+import { Check, X, ChevronDown, ChevronUp, Clock, CheckCircle, XCircle, Settings, History, AlertCircle, Users } from "lucide-react";
 import { SharedBooking, AdminConfig } from "@/lib/types";
+
+export interface Profile {
+  id: string;
+  name: string;
+  type: "student" | "association" | "prof" | "admin";
+}
 
 interface AdminPanelProps {
   sharedBookings: SharedBooking[];
   adminConfig: AdminConfig;
+  profiles: Profile[];
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
   onUpdateConfig: (config: AdminConfig) => void;
+  onUpdateUserType: (userId: string, type: "student" | "association" | "prof") => void;
 }
 
 const STATUS_CFG = {
-  pending:  { label: "En attente", color: "var(--primary)",   bg: "var(--secondary-container)",       dot: "var(--primary)" },
-  approved: { label: "Confirmée",  color: "#4ade80",           bg: "rgba(74,222,128,0.15)",             dot: "#4ade80" },
-  rejected: { label: "Refusée",    color: "rgba(255,100,100,0.9)", bg: "rgba(255,100,100,0.12)",       dot: "rgba(255,100,100,0.9)" },
+  pending:  { label: "En attente", color: "var(--primary)",          bg: "var(--secondary-container)",  dot: "var(--primary)" },
+  approved: { label: "Confirmée",  color: "#4ade80",                  bg: "rgba(74,222,128,0.15)",        dot: "#4ade80" },
+  rejected: { label: "Refusée",    color: "rgba(255,100,100,0.9)",    bg: "rgba(255,100,100,0.12)",       dot: "rgba(255,100,100,0.9)" },
 } as const;
+
+const USER_TYPES = [
+  { key: "student"     as const, label: "Élève" },
+  { key: "association" as const, label: "Association" },
+  { key: "prof"        as const, label: "Prof" },
+];
 
 function ConfigRow({
   label, sublabel, value, min, max, onChange,
@@ -197,8 +211,47 @@ function UserGroup({ userName, bookings }: { userName: string; bookings: SharedB
   );
 }
 
-export function AdminPanel({ sharedBookings, adminConfig, onApprove, onReject, onUpdateConfig }: AdminPanelProps) {
-  const [tab, setTab] = useState<"pending" | "all" | "settings">("pending");
+function UserTypeCard({ profile, onUpdateType }: {
+  profile: Profile;
+  onUpdateType: (id: string, type: "student" | "association" | "prof") => void;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-4"
+      style={{ background: "var(--surface-container-low)", border: "1px solid var(--surface-container-high)" }}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
+          style={{ background: "var(--primary)", color: "var(--on-primary)", fontFamily: "Manrope, sans-serif" }}
+        >
+          {profile.name?.charAt(0)?.toUpperCase() ?? "?"}
+        </div>
+        <p className="font-semibold text-sm flex-1 min-w-0 truncate" style={{ color: "var(--on-surface)" }}>
+          {profile.name || "—"}
+        </p>
+      </div>
+      <div className="flex gap-2">
+        {USER_TYPES.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => profile.type !== key && onUpdateType(profile.id, key)}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all hover:opacity-80"
+            style={{
+              background: profile.type === key ? "var(--primary)" : "var(--surface-container-high)",
+              color: profile.type === key ? "var(--on-primary)" : "var(--on-surface-variant)",
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function AdminPanel({ sharedBookings, adminConfig, profiles, onApprove, onReject, onUpdateConfig, onUpdateUserType }: AdminPanelProps) {
+  const [tab, setTab] = useState<"pending" | "all" | "users" | "settings">("pending");
   const [config, setConfig] = useState<AdminConfig>({ ...adminConfig });
   const [configDirty, setConfigDirty] = useState(false);
 
@@ -219,10 +272,14 @@ export function AdminPanel({ sharedBookings, adminConfig, onApprove, onReject, o
     setConfigDirty(true);
   };
 
+  // Non-admin profiles only (admins can't have their type changed here)
+  const editableProfiles = profiles.filter((p) => p.type !== "admin");
+
   const TABS = [
-    { key: "pending" as const,  label: pending.length > 0 ? `Demandes (${pending.length})` : "Demandes", icon: Clock },
-    { key: "all"     as const,  label: "Historique",  icon: History },
-    { key: "settings" as const, label: "Paramètres",  icon: Settings },
+    { key: "pending"  as const, label: pending.length > 0 ? `Demandes (${pending.length})` : "Demandes", icon: Clock },
+    { key: "all"      as const, label: "Historique",   icon: History },
+    { key: "users"    as const, label: `Utilisateurs${editableProfiles.length > 0 ? ` (${editableProfiles.length})` : ""}`, icon: Users },
+    { key: "settings" as const, label: "Paramètres",   icon: Settings },
   ];
 
   return (
@@ -243,9 +300,9 @@ export function AdminPanel({ sharedBookings, adminConfig, onApprove, onReject, o
       {/* Stats bar */}
       <div className="mx-3 sm:mx-6 mb-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "En attente", value: sharedBookings.filter(b => b.status === "pending").length,  color: "var(--primary)",  bg: "var(--secondary-container)", icon: Clock },
-          { label: "Confirmées", value: sharedBookings.filter(b => b.status === "approved").length, color: "#4ade80",          bg: "rgba(74,222,128,0.12)",      icon: CheckCircle },
-          { label: "Total",      value: sharedBookings.length,                                       color: "var(--on-surface)", bg: "var(--surface-container)",  icon: AlertCircle },
+          { label: "En attente", value: sharedBookings.filter(b => b.status === "pending").length,  color: "var(--primary)",   bg: "var(--secondary-container)", icon: Clock },
+          { label: "Confirmées", value: sharedBookings.filter(b => b.status === "approved").length, color: "#4ade80",           bg: "rgba(74,222,128,0.12)",       icon: CheckCircle },
+          { label: "Total",      value: sharedBookings.length,                                       color: "var(--on-surface)", bg: "var(--surface-container)",   icon: AlertCircle },
         ].map(({ label, value, color, bg, icon: Icon }) => (
           <div key={label} className="rounded-2xl p-4 flex flex-col items-center gap-1" style={{ background: bg }}>
             <Icon className="w-4 h-4 mb-0.5" style={{ color }} />
@@ -262,7 +319,7 @@ export function AdminPanel({ sharedBookings, adminConfig, onApprove, onReject, o
             <button
               key={key}
               onClick={() => setTab(key)}
-              className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1"
               style={{
                 background: tab === key ? "var(--primary)" : "transparent",
                 color: tab === key ? "var(--on-primary)" : "var(--on-surface-variant)",
@@ -308,6 +365,28 @@ export function AdminPanel({ sharedBookings, adminConfig, onApprove, onReject, o
             Object.entries(byUser).map(([name, bookings]) => (
               <UserGroup key={name} userName={name} bookings={bookings} />
             ))
+          )
+        )}
+
+        {/* ── Utilisateurs ── */}
+        {tab === "users" && (
+          editableProfiles.length === 0 ? (
+            <div
+              className="text-center py-16 rounded-2xl text-sm flex flex-col items-center gap-2"
+              style={{ background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
+            >
+              <Users className="w-8 h-8 opacity-40" />
+              Aucun utilisateur inscrit
+            </div>
+          ) : (
+            <>
+              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--on-surface-variant)" }}>
+                Type de compte
+              </p>
+              {editableProfiles.map((p) => (
+                <UserTypeCard key={p.id} profile={p} onUpdateType={onUpdateUserType} />
+              ))}
+            </>
           )
         )}
 

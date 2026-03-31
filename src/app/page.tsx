@@ -978,7 +978,7 @@ export default function Home() {
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--secondary)" }} />
                     <span className="text-sm font-semibold" style={{ color: "var(--on-surface)" }}>
-                      {rooms.filter((r) => isRoomFreeAt(r.id, currentDate, currentTime, mergedBookings)).length}
+                      {availableRooms.filter((r) => isRoomFreeAt(r.id, currentDate, currentTime, mergedBookings)).length}
                     </span>
                     <span className="text-sm" style={{ color: "var(--on-surface-variant)" }}>libres maintenant</span>
                   </div>

@@ -123,33 +123,23 @@ export function AccountPanel({ user, onUpdateUser, bookings, onCancelBooking, on
               </div>
             )}
 
-            {/* Type toggle */}
-            {user.type === "admin" ? (
-              <div className="px-3 py-1.5 rounded-xl text-xs font-semibold" style={{ background: "#1a237e", color: "#ffffff" }}>
-                🔐 Administrateur
-              </div>
-            ) : (
-              <div className="flex gap-2 mt-1 flex-wrap justify-center">
-                {([
-                  { key: "student",     label: "🎓 Élève" },
-                  { key: "association", label: "🏛 Association" },
-                  { key: "prof",        label: "👨‍🏫 Professeur" },
-                ] as const).map(({ key, label }) => (
-                  <button
-                    key={key}
-                    onClick={() => onUpdateUser({ ...user, type: key })}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold transition-all"
-                    style={{
-                      background: user.type === key ? "var(--primary)" : "var(--surface-container-low)",
-                      color: user.type === key ? "var(--on-primary)" : "var(--on-surface-variant)",
-                      border: user.type === key ? "none" : "1.5px solid var(--surface-container-high)",
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Type — lecture seule, défini à l'inscription */}
+            {(() => {
+              const TYPE_LABELS: Record<string, string> = {
+                student: "🎓 Élève",
+                association: "🏛 Association",
+                prof: "👨‍🏫 Professeur",
+                admin: "🔐 Administrateur",
+              };
+              return (
+                <div
+                  className="px-4 py-2 rounded-xl text-xs font-semibold"
+                  style={{ background: "var(--secondary-container)", color: "var(--primary)" }}
+                >
+                  {TYPE_LABELS[user.type] ?? user.type}
+                </div>
+              );
+            })()}
 
             <div className="flex items-center gap-1.5 text-sm" style={{ color: "var(--on-surface-variant)" }}>
               <Mail className="w-3.5 h-3.5" />

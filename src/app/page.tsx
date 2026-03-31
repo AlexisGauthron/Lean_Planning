@@ -623,6 +623,44 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ─── Realtime : notif quand l'admin change le statut d'une réservation ───────
+  useEffect(() => {
+    if (!session) return;
+    const channel = supabase
+      .channel("booking-status-" + session.user.id)
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "bookings",
+        filter: `user_id=eq.${session.user.id}`,
+      }, (payload) => {
+        const b = payload.new as { id: string; status: string; room_id: string; date: string; start_time: string; end_time: string };
+        if (b.status === "approved") {
+          setNotifications((prev) => [...prev, {
+            id: `${Date.now()}`,
+            type: "approval",
+            message: `Votre réservation a été confirmée — ${b.room_id}`,
+            detail: `${b.date} · ${b.start_time}–${b.end_time}`,
+            read: false,
+          }]);
+          setMyBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "approved" } : x));
+          setSharedBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "approved" } : x));
+        } else if (b.status === "rejected") {
+          setNotifications((prev) => [...prev, {
+            id: `${Date.now()}`,
+            type: "info",
+            message: `Votre réservation a été refusée — ${b.room_id}`,
+            detail: `${b.date} · ${b.start_time}–${b.end_time}`,
+            read: false,
+          }]);
+          setMyBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "rejected" } : x));
+          setSharedBookings((prev) => prev.map((x) => x.id === b.id ? { ...x, status: "rejected" } : x));
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Non-rejected bookings — used for display (dots colors, partial indicators)
   const activeSharedBookings = sharedBookings.filter((b) => b.status !== "rejected");
   // User's own bookings (for blue highlighting)
@@ -715,8 +753,10 @@ export default function Home() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ to: "gestion_salle@omnes.com", subject: `Demande de réservation – ${roomId} – ${date}`, body: `Salle : ${roomId}\nCampus : ${campus}\nDate : ${date}\nCréneau : ${slot.start}–${slot.end}` }),
     }).then(() => addNotification({
-      type: "approval",
-      message: user.type === "admin" ? "Réservation confirmée" : "Demande envoyée — en attente de validation admin",
+      type: user.type === "admin" ? "approval" : "email",
+      message: user.type === "admin"
+        ? "Réservation confirmée"
+        : "Votre demande a été envoyée à l'administrateur, elle sera traitée dans les plus brefs délais",
       detail: `${roomId} · ${date} · ${slot.start}–${slot.end}`,
     })).catch(() => {});
 
@@ -805,12 +845,18 @@ export default function Home() {
   const favoriteRooms = rooms.filter((r) => favorites.has(r.id));
   // Dashboard: only show rooms with at least one free slot of minimum duration today
   const minDurMin = (Number(filters.slotDuration) || 1) * 60;
+  const isToday = currentDate === getTodayISO();
+  const [nowH, nowM] = currentTime.split(":").map(Number);
+  const nowMin = nowH * 60 + nowM;
   const availableRooms = rooms.filter((r) => {
     const { freeSlots } = computeFreeSlots(r.id, currentDate, mergedBookings);
     return freeSlots.some((s) => {
       const [sh, sm] = s.start.split(":").map(Number);
       const [eh, em] = s.end.split(":").map(Number);
-      return (eh * 60 + em) - (sh * 60 + sm) >= minDurMin;
+      const slotEndMin = eh * 60 + em;
+      const effectiveStart = isToday ? Math.max(sh * 60 + sm, nowMin) : sh * 60 + sm;
+      // For today, the slot must still have enough time left from now
+      return slotEndMin - effectiveStart >= minDurMin;
     });
   });
 

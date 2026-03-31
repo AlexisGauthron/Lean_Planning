@@ -49,6 +49,28 @@ export interface CSVMetadata {
   updatedAt: Date;
 }
 
+/** Réservation partagée : tracke l'occupation des places par créneau */
+export interface SharedBooking {
+  id: string;
+  roomId: string;
+  date: string;
+  start: string;
+  end: string;
+  type: "full" | "partial"; // full = salle entière (asso/prof), partial = N places (étudiant)
+  seats: number;             // pour partial : places réservées ; pour full : capacité totale
+  userName: string;
+  userId?: string;
+  status?: "pending" | "approved" | "rejected";
+}
+
+export interface AdminConfig {
+  studentMaxDays: number;        // jours à l'avance max pour un élève
+  assoMaxDays: number;           // jours à l'avance max pour une asso
+  profMaxDays: number;           // jours à l'avance max pour un prof
+  studentMaxSeats: number;       // places max par réservation pour un élève
+  studentMaxRoomsPerDay: number; // salles max par jour pour un élève
+}
+
 export interface APIResponse {
   rooms: Room[];
   bookings: Booking[];

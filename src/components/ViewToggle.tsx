@@ -27,7 +27,7 @@ export function ViewToggle({ view, onViewChange }: ViewToggleProps) {
             }}
           >
             {v === "grid" ? <LayoutGrid className="w-4 h-4" /> : <List className="w-4 h-4" />}
-            {v === "grid" ? "Grid" : "List View"}
+            {v === "grid" ? "Grille" : "Liste"}
           </button>
         );
       })}

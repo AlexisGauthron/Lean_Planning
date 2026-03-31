@@ -12,40 +12,66 @@ interface FreeRoomCounterProps {
 
 export function FreeRoomCounter({ rooms, bookings, date, time }: FreeRoomCounterProps) {
   const freeCount = rooms.filter((room) => isRoomFreeAt(room.id, date, time, bookings)).length;
+  const total = rooms.length;
 
   return (
     <div
-      className="rounded-2xl p-5 flex flex-col gap-2"
+      className="rounded-2xl px-5 py-4 flex items-center gap-5"
       style={{ background: "var(--secondary-container)" }}
     >
-      <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: "var(--on-secondary-container)" }}>
-        Live Availability
-      </span>
-      <div className="flex items-baseline gap-2">
-        <span
-          className="text-4xl font-bold"
-          style={{ fontFamily: "Manrope, sans-serif", color: "var(--on-secondary-container)" }}
+      <div>
+        <p
+          className="text-xs font-semibold uppercase tracking-widest mb-1"
+          style={{ color: "var(--on-secondary-container)" }}
         >
-          {freeCount}
-        </span>
-        <span className="text-base font-semibold" style={{ color: "var(--on-secondary-container)" }}>
-          Rooms Free
-        </span>
+          Live Availability
+        </p>
+        <div className="flex items-baseline gap-2">
+          <span
+            className="text-4xl font-extrabold"
+            style={{ fontFamily: "Manrope, sans-serif", color: "var(--on-secondary-container)" }}
+          >
+            {freeCount}
+          </span>
+          <span className="text-sm font-semibold" style={{ color: "var(--on-secondary-container)" }}>
+            Rooms Free
+          </span>
+          {total > 0 && (
+            <span className="text-xs" style={{ color: "var(--secondary)" }}>
+              / {total}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex gap-1 mt-1">
-        {[...Array(Math.min(5, freeCount))].map((_, i) => (
+
+      {/* Avatar stack */}
+      <div className="flex items-center">
+        {[...Array(Math.min(4, freeCount))].map((_, i) => (
           <div
             key={i}
-            className="w-6 h-6 rounded-full border-2 border-white"
-            style={{ background: `hsl(${140 + i * 10}, 60%, 50%)`, marginLeft: i > 0 ? "-8px" : "0" }}
-          />
-        ))}
-        {freeCount > 5 && (
-          <div
-            className="w-6 h-6 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold"
-            style={{ background: "var(--secondary)", color: "white", marginLeft: "-8px" }}
+            className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold"
+            style={{
+              background: "var(--secondary)",
+              borderColor: "var(--secondary-container)",
+              color: "white",
+              marginLeft: i > 0 ? "-8px" : "0",
+              zIndex: 4 - i,
+            }}
           >
-            +{freeCount - 5}
+            {String.fromCharCode(65 + i)}
+          </div>
+        ))}
+        {freeCount > 4 && (
+          <div
+            className="w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold"
+            style={{
+              background: "var(--on-secondary-container)",
+              borderColor: "var(--secondary-container)",
+              color: "white",
+              marginLeft: "-8px",
+            }}
+          >
+            +{freeCount - 4}
           </div>
         )}
       </div>

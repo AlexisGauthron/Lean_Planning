@@ -10,6 +10,7 @@ export interface FilterState {
   minCapacity: string;
   equipment: string[];
   search: string;
+  slotDuration: string; // "1" | "2"
 }
 
 const initialFilters: FilterState = {
@@ -20,6 +21,7 @@ const initialFilters: FilterState = {
   minCapacity: "",
   equipment: [],
   search: "",
+  slotDuration: "1",
 };
 
 export function useFilters() {
@@ -42,7 +44,6 @@ export function useFilters() {
     }));
   }, []);
 
-  // Convertir en params pour l'API
   const apiParams: Record<string, string | undefined> = {
     campus: filters.campus || undefined,
     date: filters.date || undefined,
@@ -51,11 +52,5 @@ export function useFilters() {
     search: filters.search || undefined,
   };
 
-  return {
-    filters,
-    updateFilter,
-    resetFilters,
-    toggleEquipment,
-    apiParams,
-  };
+  return { filters, updateFilter, resetFilters, toggleEquipment, apiParams };
 }

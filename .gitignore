@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# design assets (binaries non-source)
+WhatsApp\ Image\ *.jpeg
+stitch_room_detail_schedule.zip
+stitch_room_detail_schedule/

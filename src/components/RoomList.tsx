@@ -166,12 +166,12 @@ function BookingModal({ room, slot, date, onClose, onBook, userType = "student",
                 <>
                   <div className="flex justify-between text-sm">
                     <span style={{ color: "var(--on-surface-variant)" }}>Places disponibles</span>
-                    <span className="font-medium" style={{ color: maxSeats > 0 ? "var(--on-surface)" : "#ba1a1a" }}>{maxSeats} / {room.capacity}</span>
+                    <span className="font-medium" style={{ color: maxSeats > 0 ? "var(--on-surface)" : "rgba(255,100,100,1)" }}>{maxSeats} / {room.capacity}</span>
                   </div>
                   {studentMaxSeats && effectiveSeatMax < maxSeats && (
                     <div className="flex justify-between text-sm">
                       <span style={{ color: "var(--on-surface-variant)" }}>Votre limite</span>
-                      <span className="font-medium" style={{ color: "#e65100" }}>max {studentMaxSeats} places</span>
+                      <span className="font-medium" style={{ color: "rgba(255,160,0,1)" }}>max {studentMaxSeats} places</span>
                     </div>
                   )}
                   <div className="flex items-center justify-between">
@@ -191,7 +191,7 @@ function BookingModal({ room, slot, date, onClose, onBook, userType = "student",
             </div>
 
             {isBlocked && (
-              <div className="rounded-xl px-4 py-3 text-xs text-center" style={{ background: "#ffdad6", color: "#93000a" }}>
+              <div className="rounded-xl px-4 py-3 text-xs text-center" style={{ background: "rgba(255,100,100,0.15)", color: "rgba(255,100,100,1)" }}>
                 {assocBlocked
                   ? "Des places sont déjà réservées dans ce créneau. Une association doit avoir la salle entière."
                   : "Plus aucune place disponible sur ce créneau."}
@@ -301,7 +301,7 @@ export function RoomList({ rooms, bookings, date, favorites, slotDuration = 1, u
               className="rounded-2xl p-4 flex flex-col gap-3 transition-all hover:shadow-md hover:brightness-[0.98]"
               style={{
                 background: "var(--surface-container-lowest)",
-                border: hasAssoBooking ? "1px solid #ffb4ab" : hasPartialBooking ? "1px solid #ffe082" : "1px solid var(--surface-container-high)",
+                border: hasAssoBooking ? "1px solid rgba(255,100,100,0.4)" : hasPartialBooking ? "1px solid rgba(255,180,0,0.4)" : "1px solid var(--surface-container-high)",
                 cursor: onSelectRoom ? "pointer" : "default",
               }}
             >
@@ -322,13 +322,13 @@ export function RoomList({ rooms, bookings, date, favorites, slotDuration = 1, u
                       {room.id}
                     </span>
                     {hasAssoBooking ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#ffdad6", color: "#93000a" }}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ba1a1a" }} />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "rgba(255,100,100,0.15)", color: "rgba(255,100,100,1)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(255,100,100,1)" }} />
                         Réservée (asso)
                       </span>
                     ) : hasPartialBooking ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#fff8e1", color: "#e65100" }}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ffa000" }} />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "rgba(255,180,0,0.15)", color: "rgba(255,160,0,1)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(255,160,0,1)" }} />
                         Places limitées
                       </span>
                     ) : isFree ? (
@@ -337,8 +337,8 @@ export function RoomList({ rooms, bookings, date, favorites, slotDuration = 1, u
                         Disponible
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "#ffdad6", color: "#93000a" }}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#ba1a1a" }} />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold" style={{ background: "rgba(255,100,100,0.15)", color: "rgba(255,100,100,1)" }}>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: "rgba(255,100,100,1)" }} />
                         Occupée
                       </span>
                     )}
@@ -400,10 +400,10 @@ export function RoomList({ rooms, bookings, date, favorites, slotDuration = 1, u
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
                           style={{
                             background: mine    ? "var(--primary)"
-                                      : partial ? "#fff8e1"
+                                      : partial ? "rgba(255,180,0,0.15)"
                                       : "var(--secondary-container)",
                             color:      mine    ? "var(--on-primary)"
-                                      : partial ? "#e65100"
+                                      : partial ? "rgba(255,160,0,1)"
                                       : "var(--on-secondary-container)",
                           }}
                           title={mine ? `Votre réservation : ${block.start} – ${block.end}` : `Réserver ${block.start} – ${block.end} (1h)`}

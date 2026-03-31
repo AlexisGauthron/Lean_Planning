@@ -803,10 +803,16 @@ export default function Home() {
   };
 
   const favoriteRooms = rooms.filter((r) => favorites.has(r.id));
-  // Dashboard: only show rooms with at least one free slot today
-  const availableRooms = rooms.filter((r) =>
-    computeFreeSlots(r.id, currentDate, mergedBookings).freeSlots.length > 0
-  );
+  // Dashboard: only show rooms with at least one free slot of minimum duration today
+  const minDurMin = (Number(filters.slotDuration) || 1) * 60;
+  const availableRooms = rooms.filter((r) => {
+    const { freeSlots } = computeFreeSlots(r.id, currentDate, mergedBookings);
+    return freeSlots.some((s) => {
+      const [sh, sm] = s.start.split(":").map(Number);
+      const [eh, em] = s.end.split(":").map(Number);
+      return (eh * 60 + em) - (sh * 60 + sm) >= minDurMin;
+    });
+  });
 
   return (
     <div className={`h-screen flex flex-col${user.type === "admin" ? " admin-theme" : ""}`} style={{ background: "var(--surface)" }}>

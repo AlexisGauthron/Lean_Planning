@@ -43,32 +43,46 @@ export function FilterSidebar({
 
   if (!isOpen) {
     return (
-      <aside
-        className="shrink-0 hidden sm:flex flex-col items-center py-4 gap-4"
-        style={{
-          width: "48px",
-          background: "var(--surface-container-low)",
-          borderRight: "1px solid var(--surface-container)",
-        }}
-      >
-        <button
-          onClick={onToggle}
-          className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:brightness-95"
-          style={{ background: "var(--surface-container)" }}
-          title="Ouvrir les filtres"
+      <>
+        {/* Collapsed sidebar — sm+ only */}
+        <aside
+          className="shrink-0 hidden sm:flex flex-col items-center py-4 gap-4"
+          style={{
+            width: "48px",
+            background: "var(--surface-container-low)",
+            borderRight: "1px solid var(--surface-container)",
+          }}
         >
-          <ChevronRight className="w-4 h-4" style={{ color: "var(--primary)" }} />
+          <button
+            onClick={onToggle}
+            className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors hover:brightness-95"
+            style={{ background: "var(--surface-container)" }}
+            title="Ouvrir les filtres"
+          >
+            <ChevronRight className="w-4 h-4" style={{ color: "var(--primary)" }} />
+          </button>
+          <div className="relative">
+            <SlidersHorizontal className="w-4 h-4" style={{ color: "var(--on-surface-variant)" }} />
+            {hasActiveFilters && (
+              <span
+                className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
+                style={{ background: "var(--primary)" }}
+              />
+            )}
+          </div>
+        </aside>
+
+        {/* Floating filter button — mobile only */}
+        <button
+          className="sm:hidden fixed bottom-5 left-4 z-30 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg"
+          style={{ background: "var(--primary)", color: "var(--on-primary)", fontFamily: "Manrope, sans-serif", fontSize: "0.875rem", fontWeight: 600 }}
+          onClick={onToggle}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Filtres
+          {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-white opacity-90 shrink-0" />}
         </button>
-        <div className="relative">
-          <SlidersHorizontal className="w-4 h-4" style={{ color: "var(--on-surface-variant)" }} />
-          {hasActiveFilters && (
-            <span
-              className="absolute -top-1 -right-1 w-2 h-2 rounded-full"
-              style={{ background: "var(--primary)" }}
-            />
-          )}
-        </div>
-      </aside>
+      </>
     );
   }
 
@@ -76,12 +90,12 @@ export function FilterSidebar({
     <>
       {/* Backdrop mobile */}
       <div
-        className="sm:hidden fixed inset-0 z-30"
+        className="sm:hidden fixed inset-0 top-[53px] z-30"
         style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)" }}
         onClick={onToggle}
       />
     <aside
-      className="fixed sm:relative inset-y-0 left-0 z-40 sm:z-auto w-72 sm:w-60 shrink-0 flex flex-col overflow-y-auto"
+      className="fixed sm:relative top-[53px] sm:top-auto bottom-0 sm:bottom-auto left-0 z-40 sm:z-auto w-72 sm:w-60 shrink-0 flex flex-col overflow-y-auto"
       style={{ background: "var(--surface-container-low)", borderRight: "1px solid var(--surface-container)" }}
     >
       <div className="px-4 pt-5 pb-6 flex flex-col gap-5">

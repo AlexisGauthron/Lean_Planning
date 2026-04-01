@@ -148,7 +148,7 @@ export function Header({
         </button>
 
         {/* Nav desktop */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-1">
           {NAV_ITEMS.filter(({ adminOnly }) => !adminOnly || isAdmin).map(({ label, page, dot }) => {
             const active = currentPage === page;
             const isAdminPage = page === "admin";
@@ -282,9 +282,9 @@ export function Header({
             {user ? user.name.charAt(0).toUpperCase() : "U"}
           </button>
 
-          {/* Burger — mobile only */}
+          {/* Burger — mobile/tablet only */}
           <button
-            className="md:hidden w-9 h-9 rounded-full flex items-center justify-center"
+            className="lg:hidden w-9 h-9 rounded-full flex items-center justify-center"
             style={{ background: showMobileMenu ? "var(--surface-container)" : "transparent" }}
             onClick={() => { setShowMobileMenu(!showMobileMenu); setShowNotif(false); setShowHelp(false); }}
           >
@@ -296,10 +296,10 @@ export function Header({
         </div>
       </header>
 
-      {/* Mobile nav menu */}
+      {/* Mobile/tablet nav menu */}
       {showMobileMenu && (
         <div
-          className="md:hidden fixed inset-x-0 top-[53px] z-40 py-3 flex flex-col"
+          className="lg:hidden fixed inset-x-0 top-[53px] z-40 py-3 flex flex-col"
           style={{ background: "var(--surface-container-lowest)", borderBottom: "1px solid var(--outline-variant)", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}
         >
           {NAV_ITEMS.filter(({ adminOnly }) => !adminOnly || isAdmin).map(({ label, page, dot }) => {
